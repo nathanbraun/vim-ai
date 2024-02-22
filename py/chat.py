@@ -11,8 +11,6 @@ config_options = config['options']
 config_ui = config['ui']
 prompt = vim.eval("l:prompt").strip()
 
-CUSTOM_SYSTEM_PROMPT = "The very first time you respond as the assistant please suggest a brief title for the conversation based on topic. Only do this once. Don't do it if you've done it earlier in the conversation."
-
 def initialize_chat_window():
 
     yaml_header_template = vim.eval('get(g:, "aichat_yaml_header", "")')
@@ -77,7 +75,6 @@ is_selection = vim.eval("l:is_selection")
 messages = initial_messages + chat_messages
 
 try:
-    messages.append({"role": "system", "content": CUSTOM_SYSTEM_PROMPT})
     if messages[-1]["content"].strip():
         vim.command("normal! Go\n<<< assistant\n\n")
         vim.command("redraw")
