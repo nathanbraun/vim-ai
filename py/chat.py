@@ -12,42 +12,27 @@ config_ui = config['ui']
 prompt = vim.eval("l:prompt").strip()
 
 def initialize_chat_window():
+
+    yaml_header_template = vim.eval('get(g:, "aichat_yaml_header", "")')
+    
+    # Replace placeholders with actual values if needed
+    today = dt.datetime.date.today()
+    yaml_header = yaml_header_template.replace('%title%', 'Your Title Here').replace('%date%', str(today)).replace('%tags%', 'tag1, tag2')
+
     lines = vim.eval('getline(1, "$")')
 
     # Check for YAML header and insert it if missing
-    yaml_header_exists = False
-    yaml_header_pattern = re.compile(r'^---\ntitle: .*?\ndate: .*?\ntags:.*?\n---', re.DOTALL)
-    if yaml_header_pattern.search('\n'.join(lines)):
-        yaml_header_exists = True
-
-    if not yaml_header_exists:
-        # Insert YAML header at the top of the file
-        today = dt.datetime.now().strftime('%Y-%m-%d')
-        yaml_header = f"---\ntitle: Untitled\ndate: {today}\ntags: [aichat]\n---\n"
-        vim.current.buffer[:0] = yaml_header.split('\n')  # Prepend header
-    
-    # Find the position to start the chat content
-    start_line = 1 if yaml_header_exists else len(yaml_header.split('\n'))
-    
-    # Now continue with the rest of the chat window initialization
-
+    yaml_header_exists = yaml_header in lines
+    start_line = 0 if yaml_header_exists else len(yaml_header.split('\n')) + 1
     contains_user_prompt = any('>>> user' in line for line in lines[start_line:])
-    if not contains_user_prompt:
-        # If '>>> user' is not found, insert it after the YAML header
-        vim.current.buffer.append('>>> user', start_line)
 
-        # # user role not found, put whole file content as an user prompt
-        # vim.command("normal! gg")
-        # populates_options = config_ui['populate_options'] == '1'
-        # if populates_options:
-        #     vim.command("normal! O[chat-options]")
-        #     vim.command("normal! o")
-        #     for key, value in config_options.items():
-        #         if key == 'initial_prompt':
-        #             value = "\\n".join(value)
-        #         vim.command("normal! i" + key + "=" + value + "\n")
-        # vim.command("normal! " + ("o" if populates_options else "O"))
-        # vim.command("normal! i>>> user\n")
+    if not contains_user_prompt:
+        # Insert the YAML header if it does not exist
+        if not yaml_header_exists and yaml_header_template:
+            vim.current.buffer[:0] = yaml_header.split('\n')
+
+        # Insert the user prompt after YAML header or at the beginning
+        vim.current.buffer.append('>>> user', start_line)
 
     vim.command("normal! G")
     vim_break_undo_sequence()
