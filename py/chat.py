@@ -1,4 +1,5 @@
 import vim
+from itertools import tee
 import re
 import datetime as dt
 
@@ -10,6 +11,32 @@ config = normalize_config(vim.eval("l:config"))
 config_options = config['options']
 config_ui = config['ui']
 prompt = vim.eval("l:prompt").strip()
+
+def update_yaml_title(proposed_title):
+    yaml_start_pattern = re.compile(r"^---$")
+    yaml_end_pattern = re.compile(r"^---$")
+    title_pattern = re.compile(r"title: (.+)")
+
+    lines = vim.current.buffer[:]
+    in_yaml_block = False
+    for i, line in enumerate(lines):
+        if not in_yaml_block and yaml_start_pattern.match(line):
+            in_yaml_block = True
+        elif in_yaml_block and yaml_end_pattern.match(line):
+            break
+        elif in_yaml_block and title_pattern.match(line):
+            lines[i] = f"title: {proposed_title}"
+            vim.current.buffer[i] = lines[i]
+            break
+
+def get_current_yaml_title():
+    title_pattern = re.compile(r"^title: (.+)$")
+    lines = vim.current.buffer[:]
+    for line in lines:
+        match = title_pattern.match(line.strip())
+        if match:
+            return match.group(1).strip()
+    return None  # Return None if no title is found
 
 def initialize_chat_window():
 
@@ -94,7 +121,31 @@ try:
             printDebug("[chat] response: {}", resp)
             return resp['choices'][0]['delta'].get('content', '')
         text_chunks = map(map_chunk, response)
-        render_text_chunks(text_chunks, is_selection)
+
+        current_title = get_current_yaml_title()
+        if current_title == 'Untitled':
+
+            search_iter, render_iter = tee(text_chunks, 2)
+            accumulated_text = ""
+
+            # search_iter = list(search_iter)
+            proposed_title_pattern = re.compile(r"Proposed Title: ([^\n]+)")
+
+            # print(search_iter)
+            for text_chunk in search_iter:
+                # print(text_chunk)
+                accumulated_text += text_chunk
+                if '\n\n' in accumulated_text:
+                    # Extract the proposed title from the accumulated text
+                    match = proposed_title_pattern.search(accumulated_text)
+                    if match:
+                        proposed_title = match.group(1).strip()
+                        update_yaml_title(proposed_title)  # Call the function to update the YAML title
+                        break  # Once we found the title, we can stop accumulating text
+
+            render_text_chunks(render_iter, is_selection)
+        else:
+            render_text_chunks(text_chunks, is_selection)
 
         vim.command("normal! a\n\n>>> user\n\n")
         vim.command("redraw")
