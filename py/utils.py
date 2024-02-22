@@ -160,7 +160,6 @@ def parse_chat_messages(chat_content):
                     message["content"] += "\n\n" + f"==> {path} <=="
                     message["content"] += "\n" + "Binary file, cannot display"
 
-    print_info_message(messages)
     return messages
 
 def parse_chat_header_options():
