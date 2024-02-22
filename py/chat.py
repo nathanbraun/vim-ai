@@ -1,4 +1,6 @@
 import vim
+import re
+import datetime as dt
 
 # import utils
 plugin_root = vim.eval("s:plugin_root")
@@ -10,21 +12,35 @@ config_ui = config['ui']
 prompt = vim.eval("l:prompt").strip()
 
 def initialize_chat_window():
+
+    yaml_header_template = vim.eval('get(g:, "aichat_yaml_header", "")')
+    
+    # Replace placeholders with actual values if needed
+    today = dt.date.today()
+    yaml_header = yaml_header_template.replace('%date%', str(today))
+
     lines = vim.eval('getline(1, "$")')
-    contains_user_prompt = '>>> user' in lines
+
+    # Check for YAML header and insert it if missing
+    yaml_header_exists = yaml_header in lines
+    start_line = 0 if yaml_header_exists else len(yaml_header.split('\n')) + 1
+    contains_user_prompt = any('>>> user' in line for line in lines[start_line:])
+
     if not contains_user_prompt:
-        # user role not found, put whole file content as an user prompt
-        vim.command("normal! gg")
-        populates_options = config_ui['populate_options'] == '1'
-        if populates_options:
-            vim.command("normal! O[chat-options]")
-            vim.command("normal! o")
-            for key, value in config_options.items():
-                if key == 'initial_prompt':
-                    value = "\\n".join(value)
-                vim.command("normal! i" + key + "=" + value + "\n")
-        vim.command("normal! " + ("o" if populates_options else "O"))
-        vim.command("normal! i>>> user\n")
+        # Insert the YAML header if it does not exist
+        if not yaml_header_exists and yaml_header_template:
+            vim.current.buffer[:0] = yaml_header.split('\n')
+
+        # Insert the user prompt after YAML header or at the beginning
+
+        user_prompt_line = start_line
+        vim.current.buffer.append('>>> user', user_prompt_line)
+
+        # Insert an empty line after the user prompt
+        vim.current.buffer.append('', user_prompt_line + 1)
+
+        # Move the cursor to the empty line after the user prompt
+        vim.current.window.cursor = (user_prompt_line + 2, 0)  # Line numbers are 1-indexed in Vim
 
     vim.command("normal! G")
     vim_break_undo_sequence()
