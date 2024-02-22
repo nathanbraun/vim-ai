@@ -34,6 +34,7 @@ let s:initial_chat_prompt =<< trim END
 
 You are a general assistant.
 If you attach a code block add syntax type after ``` to enable syntax highlighting.
+The first time your respond assistant, please give a brief title for the discussion. Only do this once, don't do it if you've done it earlier in the conversation.
 END
 let g:vim_ai_chat_default = {
 \  "options": {
