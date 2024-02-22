@@ -105,6 +105,9 @@ def render_text_chunks(chunks, is_selection):
         print_info_message('Empty response received. Tip: You can try modifying the prompt and retry.')
 
 
+# Custom system prompt
+SYSTEM_PROMPT = "The very first time you respond as the assistant please suggest a brief title for the conversation based on topic. Only do this once."
+
 def parse_chat_messages(chat_content):
     lines = chat_content.splitlines()
     messages = []
@@ -159,6 +162,12 @@ def parse_chat_messages(chat_content):
                 except UnicodeDecodeError:
                     message["content"] += "\n\n" + f"==> {path} <=="
                     message["content"] += "\n" + "Binary file, cannot display"
+
+    # Modify the messages to include the system prompt before user messages
+    for message in messages:
+        # Include the system prompt only for user messages
+        if message["role"] == "user":
+            message["content"] = SYSTEM_PROMPT + message["content"]
 
     return messages
 
