@@ -16,7 +16,7 @@ def initialize_chat_window():
     yaml_header_template = vim.eval('get(g:, "aichat_yaml_header", "")')
     
     # Replace placeholders with actual values if needed
-    today = dt.datetime.date.today()
+    today = dt.date.today()
     yaml_header = yaml_header_template.replace('%title%', 'Your Title Here').replace('%date%', str(today)).replace('%tags%', 'tag1, tag2')
 
     lines = vim.eval('getline(1, "$")')
