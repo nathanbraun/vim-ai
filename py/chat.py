@@ -32,7 +32,15 @@ def initialize_chat_window():
             vim.current.buffer[:0] = yaml_header.split('\n')
 
         # Insert the user prompt after YAML header or at the beginning
-        vim.current.buffer.append('>>> user', start_line)
+
+        user_prompt_line = start_line
+        vim.current.buffer.append('>>> user', user_prompt_line)
+
+        # Insert an empty line after the user prompt
+        vim.current.buffer.append('', user_prompt_line + 1)
+
+        # Move the cursor to the empty line after the user prompt
+        vim.current.window.cursor = (user_prompt_line + 2, 0)  # Line numbers are 1-indexed in Vim
 
     vim.command("normal! G")
     vim_break_undo_sequence()
