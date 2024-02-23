@@ -116,18 +116,20 @@ try:
         search_iter, render_iter = tee(text_chunks, 2)
         accumulated_text = ""
 
-        search_iter = list(search_iter)
-        proposed_title_pattern = re.compile(r"Proposed Title: (.*?)(?:\.|\n|$)", re.DOTALL)
-        print(search_iter)
+        # search_iter = list(search_iter)
+        proposed_title_pattern = re.compile(r"Proposed Title: ([^\n]+)")
+
+        # print(search_iter)
         for text_chunk in search_iter:
-            print(text_chunk)
+            # print(text_chunk)
             accumulated_text += text_chunk
-            match = proposed_title_pattern.search(accumulated_text)
-            if match:
-                # Extract everything up to a newline or the end of the match
-                proposed_title = match.group(1).strip()
-                update_yaml_title(proposed_title)  # Call the function to update the YAML title
-                break  # Once we found the title, we can stop accumulating text
+            if '\n\n' in accumulated_text:
+                # Extract the proposed title from the accumulated text
+                match = proposed_title_pattern.search(accumulated_text)
+                if match:
+                    proposed_title = match.group(1).strip()
+                    update_yaml_title(proposed_title)  # Call the function to update the YAML title
+                    break  # Once we found the title, we can stop accumulating text
 
         render_text_chunks(render_iter, is_selection)
 
