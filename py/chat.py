@@ -116,8 +116,11 @@ try:
         search_iter, render_iter = tee(text_chunks, 2)
         accumulated_text = ""
 
+        search_iter = list(search_iter)
         proposed_title_pattern = re.compile(r"Proposed Title: (.*?)(?:\.|\n|$)", re.DOTALL)
+        print(search_iter)
         for text_chunk in search_iter:
+            print(text_chunk)
             accumulated_text += text_chunk
             match = proposed_title_pattern.search(accumulated_text)
             if match:
