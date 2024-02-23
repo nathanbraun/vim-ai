@@ -114,6 +114,7 @@ try:
 
         render_text_chunks(text_chunks, is_selection)
 
+        proposed_title_pattern = re.compile(r"Proposed Title: (.+)")
         for text_chunk in text_chunks:
             match = proposed_title_pattern.search(text_chunk)
             if match:
