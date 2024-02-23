@@ -11,6 +11,23 @@ config_options = config['options']
 config_ui = config['ui']
 prompt = vim.eval("l:prompt").strip()
 
+def update_yaml_title(proposed_title):
+    yaml_start_pattern = re.compile(r"^---$")
+    yaml_end_pattern = re.compile(r"^---$")
+    title_pattern = re.compile(r"title: (.+)")
+
+    lines = vim.current.buffer[:]
+    in_yaml_block = False
+    for i, line in enumerate(lines):
+        if not in_yaml_block and yaml_start_pattern.match(line):
+            in_yaml_block = True
+        elif in_yaml_block and yaml_end_pattern.match(line):
+            break
+        elif in_yaml_block and title_pattern.match(line):
+            lines[i] = f"title: {proposed_title}"
+            vim.current.buffer[i] = lines[i]
+            break
+
 def initialize_chat_window():
 
     yaml_header_template = vim.eval('get(g:, "aichat_yaml_header", "")')
@@ -94,7 +111,15 @@ try:
             printDebug("[chat] response: {}", resp)
             return resp['choices'][0]['delta'].get('content', '')
         text_chunks = map(map_chunk, response)
+
         render_text_chunks(text_chunks, is_selection)
+
+        for text_chunk in text_chunks:
+            match = proposed_title_pattern.search(text_chunk)
+            if match:
+                proposed_title = match.group(1)
+                update_yaml_title(proposed_title)  # Call the function to update the YAML title
+                break
 
         vim.command("normal! a\n\n>>> user\n\n")
         vim.command("redraw")
