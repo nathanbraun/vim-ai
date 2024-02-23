@@ -114,16 +114,18 @@ try:
         text_chunks = map(map_chunk, response)
 
         search_iter, render_iter = tee(text_chunks, 2)
-        render_text_chunks(render_iter, is_selection)
+        accumulated_text = ""
 
-        # update_yaml_title('test title')
         proposed_title_pattern = re.compile(r"Proposed Title: (.+)")
         for text_chunk in search_iter:
-            print(text_chunk)
-            match = proposed_title_pattern.search(text_chunk)
+            accumulated_text += text_chunk
+            match = proposed_title_pattern.search(accumulated_text)
             if match:
                 proposed_title = match.group(1)
                 update_yaml_title(proposed_title)  # Call the function to update the YAML title
+                break  # Once we found the title, we can stop accumulating text
+
+        render_text_chunks(render_iter, is_selection)
 
         vim.command("normal! a\n\n>>> user\n\n")
         vim.command("redraw")
