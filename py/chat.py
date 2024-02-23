@@ -1,4 +1,5 @@
 import vim
+from itertools import tee
 import re
 import datetime as dt
 
@@ -112,19 +113,16 @@ try:
             return resp['choices'][0]['delta'].get('content', '')
         text_chunks = map(map_chunk, response)
 
-        render_text_chunks(text_chunks, is_selection)
+        search_iter, render_iter = tee(text_chunks, 2)
+        render_text_chunks(render_iter, is_selection)
 
         # update_yaml_title('test title')
         proposed_title_pattern = re.compile(r"Proposed Title: (.+)")
-        print(text_chunks)
-        for text_chunk in text_chunks:
-            print(text_chunk)
+        for text_chunk in search_iter:
             match = proposed_title_pattern.search(text_chunk)
-            print(match)
             if match:
                 proposed_title = match.group(1)
                 update_yaml_title(proposed_title)  # Call the function to update the YAML title
-                break
 
         vim.command("normal! a\n\n>>> user\n\n")
         vim.command("redraw")
