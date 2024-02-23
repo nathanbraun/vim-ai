@@ -119,6 +119,7 @@ try:
         # update_yaml_title('test title')
         proposed_title_pattern = re.compile(r"Proposed Title: (.+)")
         for text_chunk in search_iter:
+            print(text_chunk)
             match = proposed_title_pattern.search(text_chunk)
             if match:
                 proposed_title = match.group(1)
