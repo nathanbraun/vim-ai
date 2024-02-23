@@ -116,12 +116,13 @@ try:
         search_iter, render_iter = tee(text_chunks, 2)
         accumulated_text = ""
 
-        proposed_title_pattern = re.compile(r"Proposed Title: (.+)")
+        proposed_title_pattern = re.compile(r"Proposed Title: ([^\n]+)")
         for text_chunk in search_iter:
             accumulated_text += text_chunk
             match = proposed_title_pattern.search(accumulated_text)
             if match:
-                proposed_title = match.group(1)
+                # Extract everything up to a newline or the end of the match
+                proposed_title = match.group(1).strip()
                 update_yaml_title(proposed_title)  # Call the function to update the YAML title
                 break  # Once we found the title, we can stop accumulating text
 
