@@ -29,6 +29,15 @@ def update_yaml_title(proposed_title):
             vim.current.buffer[i] = lines[i]
             break
 
+def get_current_yaml_title():
+    title_pattern = re.compile(r"^title: (.+)$")
+    lines = vim.current.buffer[:]
+    for line in lines:
+        match = title_pattern.match(line.strip())
+        if match:
+            return match.group(1).strip()
+    return None  # Return None if no title is found
+
 def initialize_chat_window():
 
     yaml_header_template = vim.eval('get(g:, "aichat_yaml_header", "")')
@@ -113,25 +122,30 @@ try:
             return resp['choices'][0]['delta'].get('content', '')
         text_chunks = map(map_chunk, response)
 
-        search_iter, render_iter = tee(text_chunks, 2)
-        accumulated_text = ""
+        current_title = get_current_yaml_title()
+        if current_title == 'Untitled':
 
-        # search_iter = list(search_iter)
-        proposed_title_pattern = re.compile(r"Proposed Title: ([^\n]+)")
+            search_iter, render_iter = tee(text_chunks, 2)
+            accumulated_text = ""
 
-        # print(search_iter)
-        for text_chunk in search_iter:
-            # print(text_chunk)
-            accumulated_text += text_chunk
-            if '\n\n' in accumulated_text:
-                # Extract the proposed title from the accumulated text
-                match = proposed_title_pattern.search(accumulated_text)
-                if match:
-                    proposed_title = match.group(1).strip()
-                    update_yaml_title(proposed_title)  # Call the function to update the YAML title
-                    break  # Once we found the title, we can stop accumulating text
+            # search_iter = list(search_iter)
+            proposed_title_pattern = re.compile(r"Proposed Title: ([^\n]+)")
 
-        render_text_chunks(render_iter, is_selection)
+            # print(search_iter)
+            for text_chunk in search_iter:
+                # print(text_chunk)
+                accumulated_text += text_chunk
+                if '\n\n' in accumulated_text:
+                    # Extract the proposed title from the accumulated text
+                    match = proposed_title_pattern.search(accumulated_text)
+                    if match:
+                        proposed_title = match.group(1).strip()
+                        update_yaml_title(proposed_title)  # Call the function to update the YAML title
+                        break  # Once we found the title, we can stop accumulating text
+
+            render_text_chunks(render_iter, is_selection)
+        else:
+            render_text_chunks(text_chunks, is_selection)
 
         vim.command("normal! a\n\n>>> user\n\n")
         vim.command("redraw")
