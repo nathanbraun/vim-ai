@@ -219,6 +219,17 @@ function! vim_ai#AINewChatRun(...)
   call vim_ai#AIChatRun(0, {})
 endfunction
 
+" Define a function to create a new custom chat with a specific configuration
+function! vim_ai#AINewCustomChatRun(config, ...)
+  let l:open_conf = a:0 ? "preset_" . a:1 : g:vim_ai_chat['ui']['open_chat_command']
+  call s:OpenChatWindow(l:open_conf)
+
+  " Merge the custom configuration with the default g:vim_ai_chat
+  let l:merged_config = vim_ai_config#ExtendDeep(g:vim_ai_chat, a:config)
+
+  call vim_ai#AIChatRun(0, l:merged_config)
+endfunction
+
 " Repeat last AI command
 function! vim_ai#AIRedoRun()
   execute "normal! u"
