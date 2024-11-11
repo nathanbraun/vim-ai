@@ -163,6 +163,7 @@ def parse_chat_messages(chat_content):
                     except UnicodeDecodeError:
                         message["content"] += "\n\n" + f"==> {path} <=="
                         message["content"] += "\n" + "Binary file, cannot display"
+    return messages
 
 def is_url(url):
     try:
