@@ -154,15 +154,15 @@ def parse_chat_messages(chat_content):
                     except requests.exceptions.RequestException as e:
                         message["content"] += f"\n\n==> {path} <==\nError fetching URL: {e}"
                 else:
-                    if os.path.isdir(path):
-                        continue
-
                     try:
+                        if os.path.isdir(path):
+                            continue
+
                         with open(path, "r") as file:
                             message["content"] += f"\n\n==> {path} <==\n" + file.read()
-                    except UnicodeDecodeError:
+                    except (UnicodeDecodeError, FileNotFoundError):
                         message["content"] += "\n\n" + f"==> {path} <=="
-                        message["content"] += "\n" + "Binary file, cannot display"
+                        message["content"] += "\n" + "File not found or binary, cannot display"
     return messages
 
 def is_url(url):
