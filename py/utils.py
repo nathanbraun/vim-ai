@@ -6,6 +6,9 @@ import os
 import json
 import urllib.error
 import urllib.request
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 import socket
 import re
 from urllib.error import URLError
@@ -135,30 +138,70 @@ def parse_chat_messages(chat_content):
             message["content"] = ""
 
             pwd = vim.eval("getcwd()")
-            for i in range(len(paths)):
-                path = os.path.expanduser(paths[i])
+            for path in paths:
+                path = os.path.expanduser(path)
                 if not os.path.isabs(path):
                     path = os.path.join(pwd, path)
 
-                paths[i] = path
-
                 if '**' in path:
-                    paths[i] = None
                     paths.extend(glob.glob(path, recursive=True))
+                elif is_url(path):
+                    try:
+                        response = requests.get(path)
+                        response.raise_for_status()
+                        soup = BeautifulSoup(response.text, "html.parser")
+                        message["content"] += f"\n\n==> {path} <==\n{soup.get_text()}"
+                    except requests.exceptions.RequestException as e:
+                        message["content"] += f"\n\n==> {path} <==\nError fetching URL: {e}"
+                else:
+                    if os.path.isdir(path):
+                        continue
 
-            for path in paths:
-                if path is None:
-                    continue
+                    try:
+                        with open(path, "r") as file:
+                            message["content"] += f"\n\n==> {path} <==\n" + file.read()
+                    except UnicodeDecodeError:
+                        message["content"] += "\n\n" + f"==> {path} <=="
+                        message["content"] += "\n" + "Binary file, cannot display"
 
-                if os.path.isdir(path):
-                    continue
+def is_url(url):
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
 
-                try:
-                    with open(path, "r") as file:
-                        message["content"] += f"\n\n==> {path} <==\n" + file.read()
-                except UnicodeDecodeError:
-                    message["content"] += "\n\n" + f"==> {path} <=="
-                    message["content"] += "\n" + "Binary file, cannot display"
+
+        # if message["role"] == "include":
+        #     message["role"] = "user"
+        #     paths = message["content"].split("\n")
+        #     message["content"] = ""
+        #
+        #     pwd = vim.eval("getcwd()")
+        #     for i in range(len(paths)):
+        #         path = os.path.expanduser(paths[i])
+        #         if not os.path.isabs(path):
+        #             path = os.path.join(pwd, path)
+        #
+        #         paths[i] = path
+        #
+        #         if '**' in path:
+        #             paths[i] = None
+        #             paths.extend(glob.glob(path, recursive=True))
+        #
+        #     for path in paths:
+        #         if path is None:
+        #             continue
+        #
+        #         if os.path.isdir(path):
+        #             continue
+        #
+        #         try:
+        #             with open(path, "r") as file:
+        #                 message["content"] += f"\n\n==> {path} <==\n" + file.read()
+        #         except UnicodeDecodeError:
+        #             message["content"] += "\n\n" + f"==> {path} <=="
+        #             message["content"] += "\n" + "Binary file, cannot display"
 
     return messages
 
