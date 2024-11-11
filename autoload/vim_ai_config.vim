@@ -1,3 +1,5 @@
+let s:plugin_root = expand('<sfile>:p:h:h')
+
 let g:vim_ai_complete_default = {
 \  "engine": "complete",
 \  "options": {
@@ -39,9 +41,9 @@ The first time your respond as assistant, please give a very brief title (a few 
 END
 let g:vim_ai_chat_default = {
 \  "options": {
-\    "model": "gpt-3.5-turbo",
+\    "model": "gpt-4o",
 \    "endpoint_url": "https://api.openai.com/v1/chat/completions",
-\    "max_tokens": 1000,
+\    "max_tokens": 0,
 \    "temperature": 1,
 \    "request_timeout": 20,
 \    "enable_auth": 1,
@@ -59,9 +61,9 @@ let g:vim_ai_chat_default = {
 
 if !exists("g:vim_ai_open_chat_presets")
   let g:vim_ai_open_chat_presets = {
-  \  "preset_below": "below new | call vim_ai#MakeScratchWindow()",
-  \  "preset_tab": "tabnew | call vim_ai#MakeScratchWindow()",
-  \  "preset_right": "rightbelow 55vnew | setlocal noequalalways | setlocal winfixwidth | call vim_ai#MakeScratchWindow()",
+  \  "preset_below": "below new",
+  \  "preset_tab": "tabnew",
+  \  "preset_right": "rightbelow 55vnew | setlocal noequalalways | setlocal winfixwidth",
   \}
 endif
 
@@ -71,6 +73,12 @@ endif
 
 if !exists("g:vim_ai_debug_log_file")
   let g:vim_ai_debug_log_file = "/tmp/vim_ai_debug.log"
+endif
+if !exists("g:vim_ai_token_file_path")
+  let g:vim_ai_token_file_path = "~/.config/openai.token"
+endif
+if !exists("g:vim_ai_roles_config_file")
+  let g:vim_ai_roles_config_file = s:plugin_root . "/roles-example.ini"
 endif
 
 function! vim_ai_config#ExtendDeep(defaults, override) abort

@@ -11,6 +11,7 @@ import re
 from urllib.error import URLError
 from urllib.error import HTTPError
 import traceback
+import configparser
 
 is_debugging = vim.eval("g:vim_ai_debug") == "1"
 debug_log_file = vim.eval("g:vim_ai_debug_log_file")
@@ -19,7 +20,7 @@ class KnownError(Exception):
     pass
 
 def load_api_key():
-    config_file_path = os.path.join(os.path.expanduser("~"), ".config/openai.token")
+    config_file_path = os.path.expanduser(vim.eval("g:vim_ai_token_file_path"))
     api_key_param_value = os.getenv("OPENAI_API_KEY")
     try:
         with open(config_file_path, 'r') as file:
@@ -230,28 +231,33 @@ def openai_request(url, data, options):
 
 def print_info_message(msg):
     vim.command("redraw")
-    vim.command("normal \\<Esc>")
     vim.command("echohl ErrorMsg")
     vim.command(f"echomsg '{msg}'")
     vim.command("echohl None")
+
+def parse_error_message(error):
+    try:
+        parsed = json.loads(error.read().decode())
+        return parsed["error"]["message"]
+    except:
+        pass
 
 def handle_completion_error(error):
     # nvim throws - pynvim.api.common.NvimError: Keyboard interrupt
     is_nvim_keyboard_interrupt = "Keyboard interrupt" in str(error)
     if isinstance(error, KeyboardInterrupt) or is_nvim_keyboard_interrupt:
         print_info_message("Completion cancelled...")
-    elif isinstance(error, URLError) and isinstance(error.reason, socket.timeout):
-        print_info_message("Request timeout...")
     elif isinstance(error, HTTPError):
         status_code = error.getcode()
+        error_message = parse_error_message(error)
         msg = f"OpenAI: HTTPError {status_code}"
-        if status_code == 401:
-            msg += ' (Hint: verify that your API key is valid)'
-        if status_code == 404:
-            msg += ' (Hint: verify that you have access to the OpenAI API and to the model)'
-        elif status_code == 429:
-            msg += ' (Hint: verify that your billing plan is "Pay as you go")'
+        if error_message:
+            msg += f": {error_message}"
         print_info_message(msg)
+    elif isinstance(error, URLError) and isinstance(error.reason, socket.timeout):
+        print_info_message("Request timeout...")
+    elif isinstance(error, URLError):
+        print_info_message(f"URLError: {error.reason}")
     elif isinstance(error, KnownError):
         print_info_message(str(error))
     else:
@@ -261,3 +267,59 @@ def handle_completion_error(error):
 def clear_echo_message():
     # https://neovim.discourse.group/t/how-to-clear-the-echo-message-in-the-command-line/268/3
     vim.command("call feedkeys(':','nx')")
+
+def enhance_roles_with_custom_function(roles):
+    if vim.eval("exists('g:vim_ai_roles_config_function')") == '1':
+        roles_config_function = vim.eval("g:vim_ai_roles_config_function")
+        if not vim.eval("exists('*" + roles_config_function + "')"):
+            raise Exception(f"Role config function does not exist: {roles_config_function}")
+        else:
+            roles.update(vim.eval(roles_config_function + "()"))
+
+def load_role_config(role):
+    roles_config_path = os.path.expanduser(vim.eval("g:vim_ai_roles_config_file"))
+    if not os.path.exists(roles_config_path):
+        raise Exception(f"Role config file does not exist: {roles_config_path}")
+
+    roles = configparser.ConfigParser()
+    roles.read(roles_config_path)
+
+    enhance_roles_with_custom_function(roles)
+
+    if not role in roles:
+        raise Exception(f"Role `{role}` not found")
+
+    options = roles[f"{role}.options"] if f"{role}.options" in roles else {}
+    options_complete =roles[f"{role}.options-complete"] if f"{role}.options-complete" in roles else {}
+    options_chat = roles[f"{role}.options-chat"] if f"{role}.options-chat" in roles else {}
+
+    return {
+        'role': dict(roles[role]),
+        'options': {
+            'options_default': dict(options),
+            'options_complete': dict(options_complete),
+            'options_chat': dict(options_chat),
+        },
+    }
+
+empty_role_options = {
+    'options_default': {},
+    'options_complete': {},
+    'options_chat': {},
+}
+
+def parse_prompt_and_role(raw_prompt):
+    prompt = raw_prompt.strip()
+    role = re.split(' |:', prompt)[0]
+    if not role.startswith('/'):
+        # does not require role
+        return (prompt, empty_role_options)
+
+    prompt = prompt[len(role):].strip()
+    role = role[1:]
+
+    config = load_role_config(role)
+    if 'prompt' in config['role'] and config['role']['prompt']:
+        delim = '' if prompt.startswith(':') else ':\n'
+        prompt = config['role']['prompt'] + delim + prompt
+    return (prompt, config['options'])
