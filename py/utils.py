@@ -137,11 +137,8 @@ def parse_chat_messages(chat_content):
             paths = message["content"].split("\n")
             message["content"] = ""
 
-            pwd = vim.eval("getcwd()")
             for path in paths:
                 path = os.path.expanduser(path)
-                if not os.path.isabs(path):
-                    path = os.path.join(pwd, path)
 
                 if '**' in path:
                     paths.extend(glob.glob(path, recursive=True))
@@ -154,6 +151,7 @@ def parse_chat_messages(chat_content):
                     except requests.exceptions.RequestException as e:
                         message["content"] += f"\n\n==> {path} <==\nError fetching URL: {e}"
                 else:
+                    path = os.path.join(vim.eval("getcwd()"), path)
                     try:
                         if os.path.isdir(path):
                             continue
@@ -163,6 +161,7 @@ def parse_chat_messages(chat_content):
                     except (UnicodeDecodeError, FileNotFoundError):
                         message["content"] += "\n\n" + f"==> {path} <=="
                         message["content"] += "\n" + "File not found or binary, cannot display"
+
     return messages
 
 def is_url(url):
